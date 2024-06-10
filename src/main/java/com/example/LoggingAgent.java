@@ -22,7 +22,7 @@ public class LoggingAgent {
 
     public static void premain(String agentArgs, Instrumentation inst) {
         new AgentBuilder.Default()
-                .type(ElementMatchers.nameStartsWith("com.example.sumapp")) // Replace with your package
+                .type(ElementMatchers.nameStartsWith("com.example")) // Replace with your package
                 .transform(new AgentBuilder.Transformer() {
                     @Override
                     public DynamicType.Builder<?> transform(DynamicType.Builder<?> builder,
@@ -37,7 +37,7 @@ public class LoggingAgent {
 
     public static class MethodLogger {
 
-        private static final String LOG_FILE = "C:\\Users\\Rohan\\IdeaProjects\\method_calls.log";
+        private static final String LOG_FILE_PATH = "C:\\Users\\Rohan\\IdeaProjects\\method_calls.log"; // Specify the full file path
 
         @Advice.OnMethodEnter
         public static void onEnter(@Advice.Origin Class<?> clazz, @Advice.Origin("#m") String method, @Advice.AllArguments Object[] args) {
@@ -58,9 +58,9 @@ public class LoggingAgent {
             }
         }
 
-        private static void logMethodCall(Class<?> clazz, String method, String paramValue) {
+        public static void logMethodCall(Class<?> clazz, String method, String paramValue) {
             String logMessage = "Entering method: " + clazz.getName() + "." + method + " with TestCaseID=" + paramValue;
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(LOG_FILE, true))) {
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(LOG_FILE_PATH, true))) {
                 writer.write(logMessage);
                 writer.newLine();
             } catch (IOException e) {
