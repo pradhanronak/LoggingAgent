@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.security.ProtectionDomain;
 import java.util.Enumeration;
+import java.util.Stack;
 
 public class LoggingAgent {
 
@@ -37,10 +38,15 @@ public class LoggingAgent {
 
     public static class MethodLogger {
 
-        private static final String LOG_FILE_PATH = "C:\\Users\\Rohan\\IdeaProjects\\method_calls.log"; // Specify the full file path
+        public static final String LOG_FILE_PATH = "C:\\Users\\Rohan\\IdeaProjects\\method_calls.log"; // Specify the full file path
+        public static final ThreadLocal<Stack<String>> methodStack = ThreadLocal.withInitial(Stack::new);
 
         @Advice.OnMethodEnter
         public static void onEnter(@Advice.Origin Class<?> clazz, @Advice.Origin("#m") String method, @Advice.AllArguments Object[] args) {
+            // Add method to stack
+            String methodName = clazz.getName() + "." + method;
+            methodStack.get().push(methodName);
+
             // Retrieve current HttpServletRequest
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
             if (attributes != null) {
@@ -58,10 +64,27 @@ public class LoggingAgent {
             }
         }
 
+        @Advice.OnMethodExit
+        public static void onExit(@Advice.Origin Class<?> clazz, @Advice.Origin("#m") String method) {
+            // Remove method from stack
+            String methodName = clazz.getName() + "." + method;
+            if (!methodStack.get().isEmpty() && methodStack.get().peek().equals(methodName)) {
+                methodStack.get().pop();
+            }
+        }
+
         public static void logMethodCall(Class<?> clazz, String method, String paramValue) {
-            String logMessage = "Entering method: " + clazz.getName() + "." + method + " with TestCaseID=" + paramValue;
+            StringBuilder logMessage = new StringBuilder(paramValue + ": ");
+            Stack<String> stack = methodStack.get();
+            for (int i = 0; i < stack.size(); i++) {
+                logMessage.append(stack.get(i));
+                if (i < stack.size() - 1) {
+                    logMessage.append(", ");
+                }
+            }
+
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(LOG_FILE_PATH, true))) {
-                writer.write(logMessage);
+                writer.write(logMessage.toString());
                 writer.newLine();
             } catch (IOException e) {
                 e.printStackTrace();
